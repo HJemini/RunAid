@@ -5,9 +5,25 @@ from math import radians, cos, sin, asin, sqrt
 from streamlit_js_eval import get_geolocation
 
 # ==========================================
-# 1. 설정 및 데이터 로드
+# 1. 페이지 설정 및 디자인
 # ==========================================
-st.set_page_config(page_title="댕댕런 케어", page_icon="🏃")
+st.set_page_config(page_title="RunAid", page_icon="🏃")
+
+# 배경색 변경 (연한 하늘색)
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #F0F8FF;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# ==========================================
+# 2. 데이터 로드 및 함수 정의
+# ==========================================
 
 # 하버사인 공식 (거리 계산)
 def haversine(lat1, lon1, lat2, lon2):
@@ -18,7 +34,7 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * asin(min(1, sqrt(a)))
     return R * c
 
-# 데이터 불러오기 (캐싱을 통해 속도 향상)
+# 데이터 불러오기
 @st.cache_data
 def load_data():
     try:
@@ -41,20 +57,20 @@ INJURY_GUIDES = {
 }
 
 # ==========================================
-# 2. 웹 화면 구성 (UI)
+# 3. 웹 화면 구성 (UI)
 # ==========================================
-st.title("🏃‍♂️ 종로 댕댕런 부상 케어")
+st.title("RunAid")
 st.markdown("---")
 
 if df is None:
-    st.error("❌ 데이터 파일(jongno_run_hospitals.csv)이 없습니다. 같은 폴더에 넣어주세요.")
+    st.error("❌ 데이터 파일(jongno_run_hospitals.csv)이 없습니다.")
     st.stop()
 
 # (1) 위치 정보 받기
 st.subheader("1️⃣ 현재 위치 확인")
 st.info("아래 버튼을 누르면 GPS 정보를 가져옵니다 (브라우저 권한 허용 필요).")
 
-loc = get_geolocation() # GPS 버튼 생성
+loc = get_geolocation() # GPS 버튼
 
 user_lat = None
 user_lon = None
@@ -70,11 +86,11 @@ else:
 st.subheader("2️⃣ 부상 정보 입력")
 body_part = st.selectbox("아픈 부위를 선택하세요", list(INJURY_GUIDES.keys()))
 
-# (3) 통증 점수 선택 (슬라이더)
+# (3) 통증 점수 선택
 nrs_score = st.slider("통증 정도 (0: 안 아픔 ~ 10: 극심함)", 0, 10, 0)
 
 # ==========================================
-# 3. 결과 분석 및 출력
+# 4. 결과 분석 및 출력
 # ==========================================
 if st.button("병원 찾기 & 진단 시작", type="primary"):
     if user_lat is None or user_lon is None:
@@ -101,7 +117,7 @@ if st.button("병원 찾기 & 진단 시작", type="primary"):
             st.error(f"🚑 NRS {nrs_score}: 즉각적인 조치가 필요한 응급 상황입니다!")
             st.write("🚫 **즉시 119를 부르거나 응급실로 이동하세요.**")
 
-        # 병원 추천 로직 (응급이 아닐 때 혹은 응급이어도 정보 제공용)
+        # 병원 추천 로직
         if nrs_score <= 10:
             st.markdown("### 🏥 가장 가까운 병원 / 한의원")
             
@@ -116,7 +132,7 @@ if st.button("병원 찾기 & 진단 시작", type="primary"):
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("#### 🦴 정형외과")
+                st.markdown("#### 🦴 [정형외과]")
                 if orthopedics.empty:
                     st.write("근처 정보 없음")
                 else:
@@ -128,7 +144,7 @@ if st.button("병원 찾기 & 진단 시작", type="primary"):
                         st.divider()
 
             with col2:
-                st.markdown("#### 🌿 한의원")
+                st.markdown("#### 🌿 [한의원]")
                 if oriental.empty:
                     st.write("근처 정보 없음")
                 else:
