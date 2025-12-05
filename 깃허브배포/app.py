@@ -126,13 +126,13 @@ if st.button("병원 찾기 & 진단 시작", type="primary"):
                 lambda row: haversine(user_lat, user_lon, float(row['위도']), float(row['경도'])), axis=1
             )
             
-            orthopedics = df[df['분류'] == '정형외과'].sort_values(by='거리(km)').head(2)
+            orthopedics = df[df['분류'] == '병원'].sort_values(by='거리(km)').head(2)
             oriental = df[df['분류'] == '한의원'].sort_values(by='거리(km)').head(2)
 
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("#### 🦴 [정형외과]")
+                st.markdown("#### 🦴 [병원]")
                 if orthopedics.empty:
                     st.write("근처 정보 없음")
                 else:
