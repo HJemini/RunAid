@@ -10,7 +10,7 @@ from streamlit_js_eval import get_geolocation
 # ==========================================
 st.set_page_config(page_title="RunAid", page_icon="🏃")
 
-# 배경색 및 버튼 스타일
+# 배경색 및 응급 박스 스타일
 st.markdown(
     """
     <style>
@@ -45,38 +45,6 @@ st.markdown(
         font-weight: bold;
         border-radius: 50px;
         display: inline-block;
-    }
-    
-    /* 지도 버튼 공통 스타일 */
-    .map-btn {
-        display: inline-block;
-        padding: 8px 12px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-size: 13px;
-        font-weight: bold;
-        color: white !important;
-        border: none;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        transition: 0.3s;
-        margin-right: 5px; /* 버튼 간 간격 */
-        margin-bottom: 5px;
-    }
-    
-    /* 네이버 지도 (초록색) */
-    .naver-btn {
-        background-color: #03C75A;
-    }
-    .naver-btn:hover {
-        background-color: #029f48;
-    }
-
-    /* 구글 지도 (파란색) */
-    .google-btn {
-        background-color: #4285F4;
-    }
-    .google-btn:hover {
-        background-color: #3367D6;
     }
     </style>
     """,
@@ -113,7 +81,7 @@ LANG_TEXT = {
         "cat_ortho": "🦴 [정형외과]",
         "cat_orient": "🌿 [한의원]",
         "btn_naver": "네이버지도",
-        "btn_google": "구글지도", # 한국어에서는 안쓰지만 형식상 유지
+        "btn_google": "구글지도", 
         "no_data": "근처 정보 없음"
     },
     "English": {
@@ -326,7 +294,7 @@ if st.button(txt["btn_search"], type="primary"):
 
             col1, col2 = st.columns(2)
             
-            # 병원 정보 출력 함수 (네이버 지도 + 구글 지도 분기 처리)
+            # 병원 정보 출력 함수 (수정됨: 버튼 깨짐 방지 & 인라인 스타일 적용)
             def show_hospitals(container, data, category_name):
                 with container:
                     st.markdown(f"#### {category_name}")
@@ -336,30 +304,37 @@ if st.button(txt["btn_search"], type="primary"):
                         for _, row in data.iterrows():
                             dist = int(row['거리(km)'] * 1000)
                             
-                            # 네이버 지도 URL (이름 검색)
+                            # 네이버 지도 URL
                             encoded_name = urllib.parse.quote(row['병원명'])
                             naver_url = f"https://map.naver.com/v5/search/{encoded_name}"
                             
-                            # 구글 지도 URL (좌표 기반 검색 - 외국인에게 더 정확)
-                            google_url = f"https://www.google.com/maps/search/?api=1&query={row['위도']},{row['경도']}"
+                            # 구글 지도 URL (좌표 기반)
+                            google_url = f"https://www.google.com/maps/dir/?api=17{row['위도']},{row['경도']}"
                             
                             st.markdown(f"**{row['병원명']}** ({dist}m)")
                             st.text(f"📞 {row['전화번호']}")
                             
-                            # 버튼 HTML 생성
+                            # HTML 구조: div로 감싸고 Inline Style 적용 (깨짐 방지)
                             btn_html = f"""
-                                <a href="{naver_url}" target="_blank" class="map-btn naver-btn">
-                                    {txt['btn_naver']}
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;">
+                                <a href="{naver_url}" target="_blank" style="text-decoration: none;">
+                                    <div style="background-color: #03C75A; color: white; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: bold; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #03C75A;">
+                                        {txt['btn_naver']}
+                                    </div>
                                 </a>
                             """
                             
                             # 한국어가 아닐 경우에만 구글 버튼 추가
                             if lang_code != "한국어":
                                 btn_html += f"""
-                                    <a href="{google_url}" target="_blank" class="map-btn google-btn">
+                                <a href="{google_url}" target="_blank" style="text-decoration: none;">
+                                    <div style="background-color: #4285F4; color: white; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: bold; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #4285F4;">
                                         {txt['btn_google']}
-                                    </a>
+                                    </div>
+                                </a>
                                 """
+                            
+                            btn_html += "</div>" # 닫는 div
                             
                             st.markdown(btn_html, unsafe_allow_html=True)
                             st.divider()
