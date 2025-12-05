@@ -6,19 +6,21 @@ from math import radians, cos, sin, asin, sqrt
 from streamlit_js_eval import get_geolocation
 
 # ==========================================
-# 1. 설정 및 디자인 (CSS 간소화)
+# 1. 설정 및 디자인
 # ==========================================
 st.set_page_config(page_title="RunAid", page_icon="🏃")
 
 st.markdown(
     """
     <style>
-    .stApp { background-color: #F0F8FF; }
+    .stApp {
+        background-color: #F0F8FF;
+    }
     
     /* [의료 정보 카드 스타일] */
     .med-card {
         background-color: #ffffff;
-        border-left: 5px solid #0078FF;
+        border-left: 5px solid #0078FF; /* 기본 파란색 (동적으로 변경됨) */
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
@@ -39,7 +41,7 @@ st.markdown(
         margin-bottom: 10px;
     }
     
-    /* 응급 박스 스타일 */
+    /* 응급 박스 스타일 (NRS 8점 이상일 때 표시) */
     .emergency-box {
         background-color: #FF4B4B;
         padding: 30px;
@@ -49,8 +51,15 @@ st.markdown(
         margin-bottom: 20px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
-    .emergency-title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
-    .emergency-desc { font-size: 18px; margin-bottom: 20px; }
+    .emergency-title {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .emergency-desc {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
     .call-btn {
         background-color: white;
         color: #FF4B4B;
@@ -62,7 +71,7 @@ st.markdown(
         display: inline-block;
     }
     
-    /* 지도 버튼 */
+    /* 네이버 지도 버튼 */
     .map-btn {
         display: inline-block;
         padding: 8px 15px;
@@ -76,14 +85,16 @@ st.markdown(
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         transition: 0.3s;
     }
-    .map-btn:hover { background-color: #029f48; }
+    .map-btn:hover {
+        background-color: #029f48;
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
 # ==========================================
-# 2. 다국어 텍스트 및 데이터 (기존 유지)
+# 2. 다국어 텍스트 및 데이터 (NRS 단계별 action 분리)
 # ==========================================
 LANG_TEXT = {
     "한국어": {
@@ -108,6 +119,7 @@ LANG_TEXT = {
     }
 }
 
+# [데이터 구조] action -> mild / mod / emerg 3단계로 분리
 INJURY_DATA = {
     "한국어": {
         "무릎": {
@@ -180,7 +192,7 @@ INJURY_DATA = {
 }
 
 # ==========================================
-# 3. 함수 정의 (기존과 동일)
+# 3. 함수 정의
 # ==========================================
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
@@ -253,7 +265,7 @@ else:
 nrs_score = st.slider(txt["nrs_label"], 0, 10, 0)
 
 # ==========================================
-# 5. 결과 분석 및 출력 (출처 텍스트 단순화)
+# 5. 결과 분석 및 출력
 # ==========================================
 if st.button(txt["btn_search"], type="primary"):
     if user_lat is None or user_lon is None:
@@ -270,9 +282,11 @@ if st.button(txt["btn_search"], type="primary"):
         border_color = "#0078FF"
         final_action_text = ""
 
-        # NRS 점수에 따른 분기
+        # ------------------------------------------------
+        # [핵심 로직] NRS 점수에 따라 처치법과 UI 변경
+        # ------------------------------------------------
         if nrs_score >= 8:
-            # 1. 응급 (NRS 8~10)
+            # 1. 응급 (NRS 8~10) -> 붉은 박스 표시 & 응급처치 텍스트
             st.markdown(f"""
                 <div class="emergency-box">
                     <div class="emergency-title">🆘 {txt['msg_emerg']}</div>
@@ -287,7 +301,7 @@ if st.button(txt["btn_search"], type="primary"):
             final_action_text = selected_info['action_emerg']
 
         elif nrs_score >= 4:
-            # 2. 중등도 (NRS 4~7)
+            # 2. 중등도 (NRS 4~7) -> 경고 & 중등도 처치 텍스트
             st.warning(f"🚨 NRS {nrs_score}: {txt['msg_warning']}")
             
             card_title_prefix = txt['guide_emerg']
@@ -296,7 +310,7 @@ if st.button(txt["btn_search"], type="primary"):
             final_action_text = selected_info['action_mod']
 
         else:
-            # 3. 경미 (NRS 0~3)
+            # 3. 경미 (NRS 0~3) -> 자가 처치 텍스트
             st.success(f"✅ NRS {nrs_score}: {txt['msg_mild']}")
             
             card_title_prefix = txt['guide_self']
@@ -304,22 +318,26 @@ if st.button(txt["btn_search"], type="primary"):
             border_color = "#0078FF"
             final_action_text = selected_info['action_mild']
 
-        # [수정됨] 출처 부분을 별도의 디자인 박스 없이 텍스트로만 심플하게 표시
+        # ------------------------------------------------
+        # [정보 카드] 처치법 + 단순화된 출처 표시
+        # ------------------------------------------------
         st.markdown(f"""
         <div class="med-card" style="border-left-color: {border_color};">
             <div class="med-title">🩺 {card_title_prefix} : {selected_info['diagnosis']}</div>
             <div class="med-content">
                 <div style="color: #666; font-size: 0.9em; margin-bottom: 10px;">{sub_desc}</div>
                 {final_action_text.replace(chr(10), '<br>')}
-            </div>
-            
-            <div style="color: #888; font-size: 14px; margin-top: 15px; border-top: 1px dashed #eee; padding-top: 10px;">
-                ℹ️ {txt['source_label']}: {selected_info['source']}
+                <br><br>
+                <span style="color: #999; font-size: 0.85em;">
+                    ℹ️ {txt['source_label']}: {selected_info['source']}
+                </span>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # 병원 추천 (응급 상황 제외)
+        # ------------------------------------------------
+        # [병원 추천] 응급 상황(8점 이상)이 아닐 때만 표시
+        # ------------------------------------------------
         if nrs_score < 8:
             st.markdown(f"### {txt['hosp_header']}")
             
