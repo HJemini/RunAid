@@ -1,21 +1,67 @@
 import streamlit as st
 import pandas as pd
 import os
-import urllib.parse 
+import urllib.parse # URL 인코딩용
 from math import radians, cos, sin, asin, sqrt
 from streamlit_js_eval import get_geolocation
 
 # ==========================================
-# 1. 설정 및 기본 스타일
+# 1. 설정 및 디자인
 # ==========================================
 st.set_page_config(page_title="RunAid", page_icon="🏃")
 
-# 배경색 및 폰트 설정
+# 배경색 및 버튼 스타일
 st.markdown(
     """
     <style>
     .stApp {
         background-color: #F0F8FF;
+    }
+    /* 응급 박스 스타일 */
+    .emergency-box {
+        background-color: #FF4B4B;
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+        color: white;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .emergency-title {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .emergency-desc {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+    .call-btn {
+        background-color: white;
+        color: #FF4B4B;
+        padding: 15px 30px;
+        text-decoration: none;
+        font-size: 24px;
+        font-weight: bold;
+        border-radius: 50px;
+        display: inline-block;
+    }
+    /* 네이버 지도 버튼 스타일 */
+    .map-btn {
+        display: inline-block;
+        padding: 8px 15px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: bold;
+        color: white !important;
+        background-color: #03C75A; /* 네이버 그린 */
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: 0.3s;
+    }
+    .map-btn:hover {
+        background-color: #029f48;
     }
     </style>
     """,
@@ -29,7 +75,7 @@ LANG_TEXT = {
     "한국어": {
         "title": "RunAid",
         "loc_header": "1️⃣ 현재 위치 확인",
-        "loc_info": "아래 버튼을 누르면 GPS 정보를 가져옵니다.",
+        "loc_info": "아래 버튼을 누르면 GPS 정보를 가져옵니다 (브라우저 권한 허용 필요).",
         "loc_success": "📍 위치 확인 완료!",
         "loc_warn": "위치 정보를 가져와야 병원을 추천할 수 있습니다.",
         "body_header": "2️⃣ 부상 정보 입력",
@@ -51,14 +97,13 @@ LANG_TEXT = {
         "hosp_header": "🏥 가장 가까운 병원 / 한의원",
         "cat_ortho": "🦴 [정형외과]",
         "cat_orient": "🌿 [한의원]",
-        "btn_naver": "네이버지도 길찾기",
-        "btn_google": "구글지도 길찾기", 
+        "btn_naver": "네이버지도 경로 안내",
         "no_data": "근처 정보 없음"
     },
     "English": {
         "title": "RunAid",
         "loc_header": "1️⃣ Check Current Location",
-        "loc_info": "Press the button below to get GPS info.",
+        "loc_info": "Press the button below to get GPS info (Allow browser permission).",
         "loc_success": "📍 Location Found!",
         "loc_warn": "We need your location to recommend hospitals.",
         "body_header": "2️⃣ Injury Information",
@@ -80,14 +125,13 @@ LANG_TEXT = {
         "hosp_header": "🏥 Nearest Hospitals",
         "cat_ortho": "🦴 [Orthopedics]",
         "cat_orient": "🌿 [Oriental Clinic]",
-        "btn_naver": "Naver Map",
-        "btn_google": "Google Maps",
+        "btn_naver": "Naver Map Directions",
         "no_data": "No nearby info"
     },
     "中文": {
         "title": "RunAid",
         "loc_header": "1️⃣ 确认当前位置",
-        "loc_info": "点击下方按钮获取GPS信息。",
+        "loc_info": "点击下方按钮获取GPS信息（需允许浏览器权限）。",
         "loc_success": "📍 位置确认完毕！",
         "loc_warn": "需要获取位置信息才能推荐医院。",
         "body_header": "2️⃣ 输入受伤信息",
@@ -109,14 +153,13 @@ LANG_TEXT = {
         "hosp_header": "🏥 最近的医院 / 韩医院",
         "cat_ortho": "🦴 [骨科]",
         "cat_orient": "🌿 [韩医院]",
-        "btn_naver": "Naver地图",
-        "btn_google": "谷歌地图",
+        "btn_naver": "Naver地图 路线",
         "no_data": "附近无信息"
     },
     "日本語": {
         "title": "RunAid",
         "loc_header": "1️⃣ 現在地の確認",
-        "loc_info": "下のボタンを押してGPS情報を取得します。",
+        "loc_info": "下のボタンを押してGPS情報を取得します（ブラウザの権限許可が必要）。",
         "loc_success": "📍 位置確認完了！",
         "loc_warn": "位置情報を取得しないと病院を推薦できません。",
         "body_header": "2️⃣ 怪我情報の入力",
@@ -138,8 +181,7 @@ LANG_TEXT = {
         "hosp_header": "🏥 最寄りの病院 / 韓医院",
         "cat_ortho": "🦴 [整形外科]",
         "cat_orient": "🌿 [韓医院]",
-        "btn_naver": "NAVER地図",
-        "btn_google": "Googleマップ",
+        "btn_naver": "NAVER地図 ルート案内",
         "no_data": "近くの情報なし"
     }
 }
@@ -237,16 +279,12 @@ if st.button(txt["btn_search"], type="primary"):
         
         guide_text = guide_data[body_part]
         
-        # 1. 응급/경미 여부 메시지 출력
         if nrs_score >= 8:
-            # 119 버튼 스타일 정의
             st.markdown(f"""
-                <div style="background-color: #FF4B4B; padding: 30px; border-radius: 15px; text-align: center; color: white; margin-bottom: 20px;">
-                    <div style="font-size: 28px; font-weight: bold; margin-bottom: 10px;">🆘 {txt['msg_emerg']}</div>
-                    <div style="font-size: 18px; margin-bottom: 20px;">{txt['msg_emerg_sub']}</div>
-                    <a href="tel:119" style="background-color: white; color: #FF4B4B; padding: 15px 30px; text-decoration: none; font-size: 24px; font-weight: bold; border-radius: 50px; display: inline-block;">
-                        {txt['call_119']}
-                    </a>
+                <div class="emergency-box">
+                    <div class="emergency-title">🆘 {txt['msg_emerg']}</div>
+                    <div class="emergency-desc">{txt['msg_emerg_sub']}</div>
+                    <a href="tel:119" class="call-btn">{txt['call_119']}</a>
                 </div>
             """, unsafe_allow_html=True)
         else:
@@ -258,7 +296,6 @@ if st.button(txt["btn_search"], type="primary"):
                 st.warning(f"🚨 NRS {nrs_score}: {txt['msg_warning']}")
                 st.write(txt['msg_warning_sub'])
 
-            # 2. 병원 리스트 출력
             st.markdown(f"### {txt['hosp_header']}")
             
             df['거리(km)'] = df.apply(
@@ -270,7 +307,7 @@ if st.button(txt["btn_search"], type="primary"):
 
             col1, col2 = st.columns(2)
             
-            # [핵심 수정] 병원 정보 출력 함수 (안전한 HTML 사용)
+            # 병원 정보 출력 함수 (구글 지도 제거 버전)
             def show_hospitals(container, data, category_name):
                 with container:
                     st.markdown(f"#### {category_name}")
@@ -280,53 +317,18 @@ if st.button(txt["btn_search"], type="primary"):
                         for _, row in data.iterrows():
                             dist = int(row['거리(km)'] * 1000)
                             
-                            # 네이버 지도 URL (이름 검색)
                             encoded_name = urllib.parse.quote(row['병원명'])
                             naver_url = f"https://map.naver.com/v5/search/{encoded_name}"
                             
-                            # 구글 지도 URL (공식 검색 링크: lat,lng)
-                            google_url = f"https://www.google.com/maps/search/?api=1&query={row['위도']},{row['경도']}"
-                            
-                            # 병원 이름 및 전화번호
                             st.markdown(f"**{row['병원명']}** ({dist}m)")
                             st.text(f"📞 {row['전화번호']}")
                             
-                            # 버튼 HTML 생성 (가장 안전한 inline-block 방식)
-                            # 1. 네이버 버튼 (초록색)
-                            buttons_html = f"""
-                            <a href="{naver_url}" target="_blank" style="
-                                display: inline-block;
-                                text-decoration: none;
-                                color: white;
-                                background-color: #03C75A;
-                                padding: 8px 12px;
-                                border-radius: 8px;
-                                font-size: 13px;
-                                font-weight: bold;
-                                margin-right: 5px;
-                                margin-bottom: 5px;">
-                                {txt['btn_naver']}
-                            </a>
-                            """
-                            
-                            # 2. 구글 버튼 (파란색) - 한국어가 아닐 때만 추가
-                            if lang_code != "한국어":
-                                buttons_html += f"""
-                                <a href="{google_url}" target="_blank" style="
-                                    display: inline-block;
-                                    text-decoration: none;
-                                    color: white;
-                                    background-color: #4285F4;
-                                    padding: 8px 12px;
-                                    border-radius: 8px;
-                                    font-size: 13px;
-                                    font-weight: bold;
-                                    margin-bottom: 5px;">
-                                    {txt['btn_google']}
+                            st.markdown(f"""
+                                <a href="{naver_url}" target="_blank" class="map-btn">
+                                    {txt['btn_naver']}
                                 </a>
-                                """
+                            """, unsafe_allow_html=True)
                             
-                            st.markdown(buttons_html, unsafe_allow_html=True)
                             st.divider()
 
             show_hospitals(col1, orthopedics, txt['cat_ortho'])
