@@ -6,7 +6,7 @@ from math import radians, cos, sin, asin, sqrt
 from streamlit_js_eval import get_geolocation
 
 # ==========================================
-# 1. 설정 및 디자인 (기존 유지)
+# 1. 설정 및 디자인 (CSS 간소화)
 # ==========================================
 st.set_page_config(page_title="RunAid", page_icon="🏃")
 
@@ -15,6 +15,7 @@ st.markdown(
     <style>
     .stApp { background-color: #F0F8FF; }
     
+    /* [의료 정보 카드 스타일] */
     .med-card {
         background-color: #ffffff;
         border-left: 5px solid #0078FF;
@@ -35,19 +36,10 @@ st.markdown(
         font-size: 16px;
         line-height: 1.6;
         color: #444;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
     }
     
-    .med-source {
-        font-size: 14px;
-        color: #888;
-        background-color: #f9f9f9;
-        padding: 10px;
-        border-radius: 5px;
-        margin-top: 10px;
-        border-left: 3px solid #ddd;
-    }
-
+    /* 응급 박스 스타일 */
     .emergency-box {
         background-color: #FF4B4B;
         padding: 30px;
@@ -70,6 +62,7 @@ st.markdown(
         display: inline-block;
     }
     
+    /* 지도 버튼 */
     .map-btn {
         display: inline-block;
         padding: 8px 15px;
@@ -90,7 +83,7 @@ st.markdown(
 )
 
 # ==========================================
-# 2. 다국어 텍스트 및 데이터 (NRS 단계별 처치법 적용)
+# 2. 다국어 텍스트 및 데이터 (기존 유지)
 # ==========================================
 LANG_TEXT = {
     "한국어": {
@@ -115,7 +108,6 @@ LANG_TEXT = {
     }
 }
 
-# [데이터 구조 변경] action -> mild / mod / emerg 3단계로 분리
 INJURY_DATA = {
     "한국어": {
         "무릎": {
@@ -161,7 +153,6 @@ INJURY_DATA = {
             "source": "스포츠안전재단"
         }
     },
-    # (다른 언어는 간략히 처리하되 로직은 동일하게 적용)
     "English": {
         "Knee": { "diagnosis": "Runner's Knee", "action_mild": "Reduce speed, stretch glutes.", "action_mod": "Stop running. Ice immediately.", "action_emerg": "Do not move. Call ambulance.", "source": "Mayo Clinic" },
         "Ankle": { "diagnosis": "Ankle Sprain", "action_mild": "Slow down, watch your step.", "action_mod": "Stop. R.I.C.E therapy.", "action_emerg": "Possible fracture. Do not walk.", "source": "Red Cross" },
@@ -262,7 +253,7 @@ else:
 nrs_score = st.slider(txt["nrs_label"], 0, 10, 0)
 
 # ==========================================
-# 5. 결과 분석 및 출력 (로직 수정됨)
+# 5. 결과 분석 및 출력 (출처 텍스트 단순화)
 # ==========================================
 if st.button(txt["btn_search"], type="primary"):
     if user_lat is None or user_lon is None:
@@ -277,9 +268,9 @@ if st.button(txt["btn_search"], type="primary"):
         card_title_prefix = ""
         sub_desc = ""
         border_color = "#0078FF"
-        final_action_text = ""  # 최종적으로 보여줄 처치법 텍스트
+        final_action_text = ""
 
-        # [수정됨] NRS 점수에 따라 '처치법 내용(Action)'까지 변경
+        # NRS 점수에 따른 분기
         if nrs_score >= 8:
             # 1. 응급 (NRS 8~10)
             st.markdown(f"""
@@ -293,7 +284,7 @@ if st.button(txt["btn_search"], type="primary"):
             card_title_prefix = txt['guide_emerg']
             sub_desc = txt['msg_emerg_sub']
             border_color = "#FF4B4B"
-            final_action_text = selected_info['action_emerg'] # 응급 처치법 선택
+            final_action_text = selected_info['action_emerg']
 
         elif nrs_score >= 4:
             # 2. 중등도 (NRS 4~7)
@@ -302,7 +293,7 @@ if st.button(txt["btn_search"], type="primary"):
             card_title_prefix = txt['guide_emerg']
             sub_desc = txt['guide_sub_warning']
             border_color = "#ff9800"
-            final_action_text = selected_info['action_mod'] # 중등도 처치법 선택
+            final_action_text = selected_info['action_mod']
 
         else:
             # 3. 경미 (NRS 0~3)
@@ -311,9 +302,9 @@ if st.button(txt["btn_search"], type="primary"):
             card_title_prefix = txt['guide_self']
             sub_desc = txt['guide_sub_mild']
             border_color = "#0078FF"
-            final_action_text = selected_info['action_mild'] # 경미 처치법 선택
+            final_action_text = selected_info['action_mild']
 
-        # 정보 카드 출력 (action 내용이 동적으로 바뀜)
+        # [수정됨] 출처 부분을 별도의 디자인 박스 없이 텍스트로만 심플하게 표시
         st.markdown(f"""
         <div class="med-card" style="border-left-color: {border_color};">
             <div class="med-title">🩺 {card_title_prefix} : {selected_info['diagnosis']}</div>
@@ -322,7 +313,7 @@ if st.button(txt["btn_search"], type="primary"):
                 {final_action_text.replace(chr(10), '<br>')}
             </div>
             
-            <div class="med-source">
+            <div style="color: #888; font-size: 14px; margin-top: 15px; border-top: 1px dashed #eee; padding-top: 10px;">
                 ℹ️ {txt['source_label']}: {selected_info['source']}
             </div>
         </div>
