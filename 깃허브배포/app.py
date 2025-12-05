@@ -16,6 +16,35 @@ st.markdown(
     .stApp {
         background-color: #F0F8FF;
     }
+    /* 응급 상황 시각적 강조를 위한 클래스 */
+    .emergency-box {
+        background-color: #FF4B4B;
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+        color: white;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .emergency-title {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .emergency-desc {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+    .call-btn {
+        background-color: white;
+        color: #FF4B4B;
+        padding: 15px 30px;
+        text-decoration: none;
+        font-size: 24px;
+        font-weight: bold;
+        border-radius: 50px;
+        display: inline-block;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -43,7 +72,8 @@ LANG_TEXT = {
         "msg_warning": "전문의 진료가 필요합니다.",
         "msg_warning_sub": "자가 처치보다는 병원 방문을 권장합니다.",
         "msg_emerg": "즉각적인 조치가 필요한 응급 상황입니다!",
-        "msg_emerg_sub": "🚫 즉시 119를 부르거나 응급실로 이동하세요.",
+        "msg_emerg_sub": "더 이상 움직이지 마세요. 즉시 응급실로 가야 합니다.",
+        "call_119": "📞 119 전화걸기",
         "hosp_header": "🏥 가장 가까운 병원 / 한의원",
         "cat_ortho": "🦴 [정형외과]",
         "cat_orient": "🌿 [한의원]",
@@ -69,8 +99,9 @@ LANG_TEXT = {
         "msg_mild_sub": "Showing nearby hospitals just in case.",
         "msg_warning": "Medical attention recommended.",
         "msg_warning_sub": "We recommend visiting a hospital rather than self-care.",
-        "msg_emerg": "Emergency situation requiring immediate action!",
-        "msg_emerg_sub": "🚫 Call 119 or go to the ER immediately.",
+        "msg_emerg": "CRITICAL EMERGENCY!",
+        "msg_emerg_sub": "Do NOT move. You need immediate emergency care.",
+        "call_119": "📞 Call 119 Now",
         "hosp_header": "🏥 Nearest Hospitals",
         "cat_ortho": "🦴 [Orthopedics]",
         "cat_orient": "🌿 [Oriental Clinic]",
@@ -97,7 +128,8 @@ LANG_TEXT = {
         "msg_warning": "需要专科医生诊疗。",
         "msg_warning_sub": "建议去医院就诊，而不是自行处理。",
         "msg_emerg": "需要立即采取措施的紧急情况！",
-        "msg_emerg_sub": "🚫 请立即拨打119或前往急诊室。",
+        "msg_emerg_sub": "请不要移动。必须立即去急诊室。",
+        "call_119": "📞 拨打 119",
         "hosp_header": "🏥 最近的医院 / 韩医院",
         "cat_ortho": "🦴 [骨科]",
         "cat_orient": "🌿 [韩医院]",
@@ -124,7 +156,8 @@ LANG_TEXT = {
         "msg_warning": "専門医の診療が必要です。",
         "msg_warning_sub": "自己処置より病院の受診をお勧めします。",
         "msg_emerg": "早急な措置が必要な緊急事態です！",
-        "msg_emerg_sub": "🚫 直ちに119番に通報するか、救急室へ移動してください。",
+        "msg_emerg_sub": "動かないでください。直ちに救急室へ行く必要があります。",
+        "call_119": "📞 119番にかける",
         "hosp_header": "🏥 最寄りの病院 / 韓医院",
         "cat_ortho": "🦴 [整形外科]",
         "cat_orient": "🌿 [韓医院]",
@@ -197,14 +230,13 @@ df = load_data()
 # 4. 웹 화면 구성 (UI)
 # ==========================================
 
-# 언어 선택 (사이드바 또는 메인 상단)
+# 언어 선택
 lang_code = st.radio(
     "Language / 言語 / 语言",
     ["한국어", "English", "中文", "日本語"],
     horizontal=True
 )
 
-# 선택된 언어의 텍스트 로드
 txt = LANG_TEXT[lang_code]
 guide_data = INJURY_DATA[lang_code]
 
@@ -250,24 +282,33 @@ if st.button(txt["btn_search"], type="primary"):
         
         guide_text = guide_data[body_part]
         
-        # [Case A] 경미함
-        if nrs_score < 4:
-            st.success(f"✅ NRS {nrs_score}: {txt['msg_mild']}")
-            st.info(f"💡 **[{body_part} {txt['msg_mild_tip']}]**\n\n{guide_text}")
-            st.caption(txt['msg_mild_sub'])
+        # [Case C] 응급 (NRS 8 ~ 10) - 우선 처리
+        if nrs_score >= 8:
+            # 병원 리스트 숨기고, 경고 박스 크게 출력
+            st.markdown(f"""
+                <div class="emergency-box">
+                    <div class="emergency-title">🆘 {txt['msg_emerg']}</div>
+                    <div class="emergency-desc">{txt['msg_emerg_sub']}</div>
+                    <a href="tel:119" class="call-btn">{txt['call_119']}</a>
+                </div>
+            """, unsafe_allow_html=True)
             
-        # [Case B] 병원 방문 권장
-        elif 4 <= nrs_score <= 7:
-            st.warning(f"🚨 NRS {nrs_score}: {txt['msg_warning']}")
-            st.write(txt['msg_warning_sub'])
-            
-        # [Case C] 응급
-        else:
-            st.error(f"🚑 NRS {nrs_score}: {txt['msg_emerg']}")
-            st.write(txt['msg_emerg_sub'])
+            # 여기서 로직 종료 (병원 추천 안 함)
 
-        # 병원 추천 로직
-        if nrs_score <= 10:
+        else:
+            # [Case A & B] 경미하거나 중등도 통증 (NRS 0 ~ 7)
+            
+            if nrs_score < 4:
+                # 경미함
+                st.success(f"✅ NRS {nrs_score}: {txt['msg_mild']}")
+                st.info(f"💡 **[{body_part} {txt['msg_mild_tip']}]**\n\n{guide_text}")
+                st.caption(txt['msg_mild_sub'])
+            else:
+                # 중등도 (4~7)
+                st.warning(f"🚨 NRS {nrs_score}: {txt['msg_warning']}")
+                st.write(txt['msg_warning_sub'])
+
+            # 병원 추천 로직 (NRS 7 이하일 때만 실행됨)
             st.markdown(f"### {txt['hosp_header']}")
             
             # 거리 계산
@@ -287,7 +328,6 @@ if st.button(txt["btn_search"], type="primary"):
                 else:
                     for _, row in orthopedics.iterrows():
                         dist = int(row['거리(km)'] * 1000)
-                        # 병원 이름/주소는 DB에 있는 원본(한국어) 사용
                         st.markdown(f"**{row['병원명']}** ({dist}m)")
                         st.text(f"📞 {row['전화번호']}")
                         st.markdown(f"[{txt['info_map']}]({row['지도URL']})")
