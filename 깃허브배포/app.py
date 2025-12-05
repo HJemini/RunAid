@@ -6,21 +6,19 @@ from math import radians, cos, sin, asin, sqrt
 from streamlit_js_eval import get_geolocation
 
 # ==========================================
-# 1. 설정 및 디자인
+# 1. 설정 및 디자인 (기존과 동일)
 # ==========================================
 st.set_page_config(page_title="RunAid", page_icon="🏃")
 
 st.markdown(
     """
     <style>
-    .stApp {
-        background-color: #F0F8FF;
-    }
+    .stApp { background-color: #F0F8FF; }
     
     /* [의료 정보 카드 스타일] */
     .med-card {
         background-color: #ffffff;
-        border-left: 5px solid #0078FF; /* 의료용 파란색 */
+        border-left: 5px solid #0078FF; /* 기본 파란색 */
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
@@ -41,7 +39,7 @@ st.markdown(
         margin-bottom: 15px;
     }
     
-    /* [핵심] 클릭 가능한 출처 링크 버튼 스타일 */
+    /* 소스 링크 스타일 */
     .med-source-link a {
         color: #0078FF;
         text-decoration: none;
@@ -71,15 +69,8 @@ st.markdown(
         margin-bottom: 20px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
-    .emergency-title {
-        font-size: 28px;
-        font-weight: bold;
-        margin-bottom: 10px;
-    }
-    .emergency-desc {
-        font-size: 18px;
-        margin-bottom: 20px;
-    }
+    .emergency-title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+    .emergency-desc { font-size: 18px; margin-bottom: 20px; }
     .call-btn {
         background-color: white;
         color: #FF4B4B;
@@ -91,7 +82,7 @@ st.markdown(
         display: inline-block;
     }
     
-    /* 네이버 지도 버튼 */
+    /* 지도 버튼 */
     .map-btn {
         display: inline-block;
         padding: 8px 15px;
@@ -105,22 +96,20 @@ st.markdown(
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         transition: 0.3s;
     }
-    .map-btn:hover {
-        background-color: #029f48;
-    }
+    .map-btn:hover { background-color: #029f48; }
     </style>
     """,
     unsafe_allow_html=True
 )
 
 # ==========================================
-# 2. 다국어 텍스트 및 [전문 의학 데이터 + 링크]
+# 2. 다국어 텍스트 및 데이터 (수정됨)
 # ==========================================
 LANG_TEXT = {
     "한국어": {
         "title": "RunAid",
         "loc_header": "1️⃣ 현재 위치 확인",
-        "loc_info": "아래 버튼을 누르면 GPS 정보를 가져옵니다 (브라우저 권한 허용 필요).",
+        "loc_info": "아래 버튼을 누르면 GPS 정보를 가져옵니다.",
         "loc_success": "📍 위치 확인 완료!",
         "loc_warn": "위치 정보를 가져와야 병원을 추천할 수 있습니다.",
         "body_header": "2️⃣ 부상 정보 입력",
@@ -132,10 +121,7 @@ LANG_TEXT = {
         "err_loc": "먼저 상단의 버튼을 눌러 위치 정보를 가져와주세요!",
         "res_header": "🔄 분석 결과",
         "msg_mild": "경미한 통증입니다.",
-        "msg_mild_tip": "RunAid 처치 가이드",
-        "msg_mild_sub": "본 정보는 전문 가이드라인을 기반으로 하지만, 의사의 진단을 대체할 수 없습니다.",
         "msg_warning": "전문의 진료가 필요합니다.",
-        "msg_warning_sub": "자가 처치보다는 병원 방문을 권장합니다.",
         "msg_emerg": "즉각적인 조치가 필요한 응급 상황입니다!",
         "msg_emerg_sub": "더 이상 움직이지 마세요. 즉시 응급실로 가야 합니다.",
         "call_119": "📞 119 전화걸기",
@@ -143,16 +129,24 @@ LANG_TEXT = {
         "cat_ortho": "🦴 [정형외과]",
         "cat_orient": "🌿 [한의원]",
         "btn_naver": "네이버지도 경로 안내",
-        "no_data": "근처 정보 없음"
+        "no_data": "근처 정보 없음",
+        # [추가된 텍스트]
+        "guide_self": "💊 자가 처치법 (Self-care)",
+        "guide_emerg": "🩹 응급처치 (First Aid)",
+        "guide_sub_warning": "※ 자가 처치보다는 병원 방문을 권장합니다.",
+        "guide_sub_mild": "※ 본 정보는 가이드라인이며 의사의 진단을 대체할 수 없습니다."
     },
     "English": {
-        "title": "RunAid", "loc_header": "1️⃣ Check Location", "loc_info": "Press button for GPS.", "loc_success": "📍 Location Found!", "loc_warn": "Need location.", "body_header": "2️⃣ Injury Info", "body_label": "Select area", "nrs_header": "3️⃣ Pain Level (NRS)", "nrs_guide_cap": "Higher = Worse pain.", "nrs_label": "Pain Score (0-10)", "btn_search": "Diagnose", "err_loc": "Get location first!", "res_header": "🔄 Analysis Result", "msg_mild": "Mild pain.", "msg_mild_tip": "Care Guide", "msg_mild_sub": "Based on guidelines. Not a diagnosis.", "msg_warning": "See a doctor.", "msg_warning_sub": "Visit hospital recommended.", "msg_emerg": "CRITICAL EMERGENCY!", "msg_emerg_sub": "Do NOT move. Call 119.", "call_119": "📞 Call 119", "hosp_header": "🏥 Nearest Hospitals", "cat_ortho": "🦴 [Orthopedics]", "cat_orient": "🌿 [Oriental Clinic]", "btn_naver": "Directions", "no_data": "No info"
+        "title": "RunAid", "loc_header": "1️⃣ Check Location", "loc_info": "Press button for GPS.", "loc_success": "📍 Location Found!", "loc_warn": "Need location.", "body_header": "2️⃣ Injury Info", "body_label": "Select area", "nrs_header": "3️⃣ Pain Level (NRS)", "nrs_guide_cap": "Higher = Worse pain.", "nrs_label": "Pain Score (0-10)", "btn_search": "Diagnose", "err_loc": "Get location first!", "res_header": "🔄 Analysis Result", "msg_mild": "Mild pain.", "msg_warning": "See a doctor.", "msg_emerg": "CRITICAL EMERGENCY!", "msg_emerg_sub": "Do NOT move. Call 119.", "call_119": "📞 Call 119", "hosp_header": "🏥 Nearest Hospitals", "cat_ortho": "🦴 [Orthopedics]", "cat_orient": "🌿 [Oriental Clinic]", "btn_naver": "Directions", "no_data": "No info",
+        "guide_self": "💊 Self-care Method", "guide_emerg": "🩹 First Aid / Emergency Care", "guide_sub_warning": "※ Hospital visit recommended.", "guide_sub_mild": "※ Not a medical diagnosis."
     },
     "中文": {
-        "title": "RunAid", "loc_header": "1️⃣ 确认位置", "loc_info": "点击按钮获取GPS。", "loc_success": "📍 位置确认！", "loc_warn": "需要位置信息。", "body_header": "2️⃣ 受伤信息", "body_label": "选择部位", "nrs_header": "3️⃣ 疼痛程度 (NRS)", "nrs_guide_cap": "数字越大越痛。", "nrs_label": "选择分数 (0-10)", "btn_search": "开始诊断", "err_loc": "请先获取位置！", "res_header": "🔄 分析结果", "msg_mild": "轻微疼痛。", "msg_mild_tip": "护理建议", "msg_mild_sub": "基于专业指南，不能替代医生诊断。", "msg_warning": "需要就医。", "msg_warning_sub": "建议去医院。", "msg_emerg": "紧急情况！", "msg_emerg_sub": "不要移动，立即拨打119。", "call_119": "📞 拨打 119", "hosp_header": "🏥 最近医院", "cat_ortho": "🦴 [骨科]", "cat_orient": "🌿 [韩医院]", "btn_naver": "路线", "no_data": "无信息"
+        "title": "RunAid", "loc_header": "1️⃣ 确认位置", "loc_info": "点击按钮获取GPS。", "loc_success": "📍 位置确认！", "loc_warn": "需要位置信息。", "body_header": "2️⃣ 受伤信息", "body_label": "选择部位", "nrs_header": "3️⃣ 疼痛程度 (NRS)", "nrs_guide_cap": "数字越大越痛。", "nrs_label": "选择分数 (0-10)", "btn_search": "开始诊断", "err_loc": "请先获取位置！", "res_header": "🔄 分析结果", "msg_mild": "轻微疼痛。", "msg_warning": "需要就医。", "msg_emerg": "紧急情况！", "msg_emerg_sub": "不要移动，立即拨打119。", "call_119": "📞 拨打 119", "hosp_header": "🏥 最近医院", "cat_ortho": "🦴 [骨科]", "cat_orient": "🌿 [韩医院]", "btn_naver": "路线", "no_data": "无信息",
+        "guide_self": "💊 自我护理", "guide_emerg": "🩹 应急处理", "guide_sub_warning": "※ 建议去医院。", "guide_sub_mild": "※ 不能替代医生诊断。"
     },
     "日本語": {
-        "title": "RunAid", "loc_header": "1️⃣ 現在地の確認", "loc_info": "ボタンを押してGPS取得。", "loc_success": "📍 位置確認完了！", "loc_warn": "位置情報が必要です。", "body_header": "2️⃣ 怪我情報", "body_label": "部位を選択", "nrs_header": "3️⃣ 痛みの程度 (NRS)", "nrs_guide_cap": "数字が大きいほど痛い。", "nrs_label": "スコア選択 (0-10)", "btn_search": "診断開始", "err_loc": "位置情報を取得してください！", "res_header": "🔄 分析結果", "msg_mild": "軽度の痛み。", "msg_mild_tip": "ケアガイド", "msg_mild_sub": "専門ガイドラインに基づきますが、診断の代わりにはなりません。", "msg_warning": "専門医の診療が必要です。", "msg_warning_sub": "病院へ行くことを推奨。", "msg_emerg": "緊急事態です！", "msg_emerg_sub": "動かず119番してください。", "call_119": "📞 119番", "hosp_header": "🏥 最寄りの病院", "cat_ortho": "🦴 [整形外科]", "cat_orient": "🌿 [韓医院]", "btn_naver": "ルート案内", "no_data": "情報なし"
+        "title": "RunAid", "loc_header": "1️⃣ 現在地の確認", "loc_info": "ボタンを押してGPS取得。", "loc_success": "📍 位置確認完了！", "loc_warn": "位置情報が必要です。", "body_header": "2️⃣ 怪我情報", "body_label": "部位を選択", "nrs_header": "3️⃣ 痛みの程度 (NRS)", "nrs_guide_cap": "数字が大きいほど痛い。", "nrs_label": "スコア選択 (0-10)", "btn_search": "診断開始", "err_loc": "位置情報を取得してください！", "res_header": "🔄 分析結果", "msg_mild": "軽度の痛み。", "msg_warning": "専門医の診療が必要です。", "msg_emerg": "緊急事態です！", "msg_emerg_sub": "動かず119番してください。", "call_119": "📞 119番", "hosp_header": "🏥 最寄りの病院", "cat_ortho": "🦴 [整形外科]", "cat_orient": "🌿 [韓医院]", "btn_naver": "ルート案内", "no_data": "情報なし",
+        "guide_self": "💊 セルフケア法", "guide_emerg": "🩹 応急処置", "guide_sub_warning": "※ 病院へ行くことを推奨。", "guide_sub_mild": "※ 診断の代わりにはなりません。"
     }
 }
 
@@ -222,7 +216,7 @@ INJURY_DATA = {
 }
 
 # ==========================================
-# 3. 함수 정의
+# 3. 함수 정의 (기존과 동일)
 # ==========================================
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
@@ -295,7 +289,7 @@ else:
 nrs_score = st.slider(txt["nrs_label"], 0, 10, 0)
 
 # ==========================================
-# 5. 결과 분석 및 출력 (HTML 링크 버튼 적용)
+# 5. 결과 분석 및 출력 (수정됨)
 # ==========================================
 if st.button(txt["btn_search"], type="primary"):
     if user_lat is None or user_lon is None:
@@ -304,11 +298,21 @@ if st.button(txt["btn_search"], type="primary"):
         st.markdown("---")
         st.header(txt["res_header"])
         
-        # 선택된 부위의 상세 데이터 가져오기 (진단명, 조치, 출처, 링크)
         selected_info = guide_data[body_part]
+
+        # 변수 초기화: 상태 메시지, 카드 제목, 보조 설명, 카드 테두리 색상
+        status_msg = ""
+        card_title_prefix = ""
+        sub_desc = ""
+        border_color = "#0078FF" # 기본 파란색
+
+        # ----------------------------------------------
+        # [로직 변경 구간] NRS 점수에 따른 분기 처리
+        # ----------------------------------------------
         
-        # 1. 응급 상황 (NRS 8 이상) -> 병원 추천 로직 제외, 119만 표시
+        # 1. 응급 (NRS 8~10)
         if nrs_score >= 8:
+            # (1) 응급 박스 먼저 표시
             st.markdown(f"""
                 <div class="emergency-box">
                     <div class="emergency-title">🆘 {txt['msg_emerg']}</div>
@@ -317,47 +321,51 @@ if st.button(txt["btn_search"], type="primary"):
                 </div>
             """, unsafe_allow_html=True)
             
-        # 2. 비응급 상황 (자가 처치 정보 + 병원 추천 제공)
-        else:
-            if nrs_score < 4:
-                st.success(f"✅ NRS {nrs_score}: {txt['msg_mild']}")
-                
-                # 경미한 통증 카드 (출처 버튼 포함)
-                st.markdown(f"""
-                <div class="med-card">
-                    <div class="med-title">🩺 {selected_info['diagnosis']}</div>
-                    <div class="med-content">{selected_info['action'].replace(chr(10), '<br>')}</div>
-                    
-                    <div class="med-source-link">
-                        <a href="{selected_info['link']}" target="_blank">
-                            📖 {selected_info['source']} 보러가기 🔗
-                        </a>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                st.caption(txt['msg_mild_sub'])
-                
-            else:
-                st.warning(f"🚨 NRS {nrs_score}: {txt['msg_warning']}")
-                
-                # 중등도 통증 카드 (주의 문구 + 출처 버튼 포함)
-                st.markdown(f"""
-                <div class="med-card" style="border-left-color: #ff9800;">
-                    <div class="med-title">🩺 {selected_info['diagnosis']}</div>
-                    <div class="med-content">
-                        <b>{txt['msg_warning_sub']}</b><br><br>
-                        {selected_info['action'].replace(chr(10), '<br>')}
-                    </div>
-                    
-                    <div class="med-source-link">
-                        <a href="{selected_info['link']}" target="_blank">
-                            📖 {selected_info['source']} 보러가기 🔗
-                        </a>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+            # (2) 변수 설정 (응급처치 정보 표시)
+            card_title_prefix = txt['guide_emerg']  # "응급처치"
+            sub_desc = txt['msg_emerg_sub']         # "움직이지 말고 119..."
+            border_color = "#FF4B4B"                # 빨간색 테두리
 
-            # [수정됨] 병원 추천 로직을 else 블록 내부로 이동 (응급 시 실행 안 됨)
+        # 2. 주의/경고 (NRS 4~7)
+        elif nrs_score >= 4:
+            st.warning(f"🚨 NRS {nrs_score}: {txt['msg_warning']}")
+            
+            card_title_prefix = txt['guide_emerg']  # "응급처치" (요청사항 반영)
+            sub_desc = txt['guide_sub_warning']     # "병원 방문 권장"
+            border_color = "#ff9800"                # 주황색 테두리
+
+        # 3. 경미 (NRS 0~3)
+        else:
+            st.success(f"✅ NRS {nrs_score}: {txt['msg_mild']}")
+            
+            card_title_prefix = txt['guide_self']   # "자가 처치법" (요청사항 반영)
+            sub_desc = txt['guide_sub_mild']        # "의사 진단 대체 불가"
+            border_color = "#0078FF"                # 파란색 테두리
+
+        # ----------------------------------------------
+        # [공통] 의료 정보 카드 출력 (응급 상황에서도 출력됨)
+        # ----------------------------------------------
+        st.markdown(f"""
+        <div class="med-card" style="border-left-color: {border_color};">
+            <div class="med-title">🩺 {card_title_prefix} : {selected_info['diagnosis']}</div>
+            <div class="med-content">
+                <div style="color: #666; font-size: 0.9em; margin-bottom: 10px;">{sub_desc}</div>
+                {selected_info['action'].replace(chr(10), '<br>')}
+            </div>
+            
+            <div class="med-source-link">
+                <a href="{selected_info['link']}" target="_blank">
+                    📖 {selected_info['source']} 보러가기 🔗
+                </a>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ----------------------------------------------
+        # [병원 추천] 응급(8점 이상)이 아닐 때만 표시
+        # (응급 상황에서는 이동보다 119가 우선이므로 지도 숨김 유지)
+        # ----------------------------------------------
+        if nrs_score < 8:
             st.markdown(f"### {txt['hosp_header']}")
             
             df['거리(km)'] = df.apply(
