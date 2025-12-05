@@ -132,7 +132,7 @@ if st.button("병원 찾기 & 진단 시작", type="primary"):
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("#### 🦴 [정형외과]")
+                st.markdown("#### 🦴 [병원]")
                 if orthopedics.empty:
                     st.write("근처 정보 없음")
                 else:
@@ -153,4 +153,5 @@ if st.button("병원 찾기 & 진단 시작", type="primary"):
                         st.markdown(f"**{row['병원명']}** ({dist}m)")
                         st.text(f"📞 {row['전화번호']}")
                         st.markdown(f"[지도 보기]({row['지도URL']})")
+
                         st.divider()
