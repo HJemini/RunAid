@@ -5,11 +5,11 @@ from math import radians, cos, sin, asin, sqrt
 from streamlit_js_eval import get_geolocation
 
 # ==========================================
-# 1. 페이지 설정 및 디자인
+# 1. 설정 및 디자인
 # ==========================================
 st.set_page_config(page_title="RunAid", page_icon="🏃")
 
-# 배경색 변경 (연한 하늘색)
+# 배경색 (연한 하늘색)
 st.markdown(
     """
     <style>
@@ -22,10 +22,158 @@ st.markdown(
 )
 
 # ==========================================
-# 2. 데이터 로드 및 함수 정의
+# 2. 다국어 텍스트 데이터 (번역 DB)
 # ==========================================
+LANG_TEXT = {
+    "한국어": {
+        "title": "RunAid",
+        "loc_header": "1️⃣ 현재 위치 확인",
+        "loc_info": "아래 버튼을 누르면 GPS 정보를 가져옵니다 (브라우저 권한 허용 필요).",
+        "loc_success": "📍 위치 확인 완료!",
+        "loc_warn": "위치 정보를 가져와야 병원을 추천할 수 있습니다.",
+        "body_header": "2️⃣ 부상 정보 입력",
+        "body_label": "아픈 부위를 선택하세요",
+        "nrs_label": "통증 정도 (0: 안 아픔 ~ 10: 극심함)",
+        "btn_search": "병원 찾기 & 진단 시작",
+        "err_loc": "먼저 상단의 버튼을 눌러 위치 정보를 가져와주세요!",
+        "res_header": "🔄 분석 결과",
+        "msg_mild": "경미한 통증입니다.",
+        "msg_mild_tip": "관리 팁",
+        "msg_mild_sub": "혹시 모를 상황을 위해 근처 병원을 안내합니다.",
+        "msg_warning": "전문의 진료가 필요합니다.",
+        "msg_warning_sub": "자가 처치보다는 병원 방문을 권장합니다.",
+        "msg_emerg": "즉각적인 조치가 필요한 응급 상황입니다!",
+        "msg_emerg_sub": "🚫 즉시 119를 부르거나 응급실로 이동하세요.",
+        "hosp_header": "🏥 가장 가까운 병원 / 한의원",
+        "cat_ortho": "🦴 [정형외과]",
+        "cat_orient": "🌿 [한의원]",
+        "info_addr": "주소",
+        "info_tel": "전화",
+        "info_map": "지도 보기",
+        "no_data": "근처 정보 없음"
+    },
+    "English": {
+        "title": "RunAid",
+        "loc_header": "1️⃣ Check Current Location",
+        "loc_info": "Press the button below to get GPS info (Allow browser permission).",
+        "loc_success": "📍 Location Found!",
+        "loc_warn": "We need your location to recommend hospitals.",
+        "body_header": "2️⃣ Injury Information",
+        "body_label": "Select the injured area",
+        "nrs_label": "Pain Level (0: None ~ 10: Extreme)",
+        "btn_search": "Find Hospitals & Diagnose",
+        "err_loc": "Please get location information first!",
+        "res_header": "🔄 Analysis Result",
+        "msg_mild": "Mild pain detected.",
+        "msg_mild_tip": "Care Tip",
+        "msg_mild_sub": "Showing nearby hospitals just in case.",
+        "msg_warning": "Medical attention recommended.",
+        "msg_warning_sub": "We recommend visiting a hospital rather than self-care.",
+        "msg_emerg": "Emergency situation requiring immediate action!",
+        "msg_emerg_sub": "🚫 Call 119 or go to the ER immediately.",
+        "hosp_header": "🏥 Nearest Hospitals",
+        "cat_ortho": "🦴 [Orthopedics]",
+        "cat_orient": "🌿 [Oriental Clinic]",
+        "info_addr": "Addr",
+        "info_tel": "Tel",
+        "info_map": "Map",
+        "no_data": "No nearby info"
+    },
+    "中文": {
+        "title": "RunAid",
+        "loc_header": "1️⃣ 确认当前位置",
+        "loc_info": "点击下方按钮获取GPS信息（需允许浏览器权限）。",
+        "loc_success": "📍 位置确认完毕！",
+        "loc_warn": "需要获取位置信息才能推荐医院。",
+        "body_header": "2️⃣ 输入受伤信息",
+        "body_label": "请选择疼痛部位",
+        "nrs_label": "疼痛程度 (0: 无痛 ~ 10: 剧痛)",
+        "btn_search": "查找医院 & 开始诊断",
+        "err_loc": "请先点击上方按钮获取位置信息！",
+        "res_header": "🔄 分析结果",
+        "msg_mild": "轻微疼痛。",
+        "msg_mild_tip": "护理建议",
+        "msg_mild_sub": "为了以防万一，为您介绍附近的医院。",
+        "msg_warning": "需要专科医生诊疗。",
+        "msg_warning_sub": "建议去医院就诊，而不是自行处理。",
+        "msg_emerg": "需要立即采取措施的紧急情况！",
+        "msg_emerg_sub": "🚫 请立即拨打119或前往急诊室。",
+        "hosp_header": "🏥 最近的医院 / 韩医院",
+        "cat_ortho": "🦴 [骨科]",
+        "cat_orient": "🌿 [韩医院]",
+        "info_addr": "地址",
+        "info_tel": "电话",
+        "info_map": "查看地图",
+        "no_data": "附近无信息"
+    },
+    "日本語": {
+        "title": "RunAid",
+        "loc_header": "1️⃣ 現在地の確認",
+        "loc_info": "下のボタンを押してGPS情報を取得します（ブラウザの権限許可が必要）。",
+        "loc_success": "📍 位置確認完了！",
+        "loc_warn": "位置情報を取得しないと病院を推薦できません。",
+        "body_header": "2️⃣ 怪我情報の入力",
+        "body_label": "痛む部位を選択してください",
+        "nrs_label": "痛みの程度 (0: なし ~ 10: 激痛)",
+        "btn_search": "病院検索 & 診断開始",
+        "err_loc": "先に上のボタンを押して位置情報を取得してください！",
+        "res_header": "🔄 分析結果",
+        "msg_mild": "軽度の痛みです。",
+        "msg_mild_tip": "ケアのヒント",
+        "msg_mild_sub": "万が一のために近くの病院を案内します。",
+        "msg_warning": "専門医の診療が必要です。",
+        "msg_warning_sub": "自己処置より病院の受診をお勧めします。",
+        "msg_emerg": "早急な措置が必要な緊急事態です！",
+        "msg_emerg_sub": "🚫 直ちに119番に通報するか、救急室へ移動してください。",
+        "hosp_header": "🏥 最寄りの病院 / 韓医院",
+        "cat_ortho": "🦴 [整形外科]",
+        "cat_orient": "🌿 [韓医院]",
+        "info_addr": "住所",
+        "info_tel": "電話",
+        "info_map": "地図",
+        "no_data": "近くの情報なし"
+    }
+}
 
-# 하버사인 공식 (거리 계산)
+# 부상 가이드 (언어별)
+INJURY_DATA = {
+    "한국어": {
+        "무릎": "러너스 니 의심. 무릎 바깥쪽 통증 시 IT밴드 스트레칭 필수. 내리막길 주행 금지.",
+        "발목": "발목 염좌 의심. 즉시 R.I.C.E(휴식, 냉찜질, 압박, 거상) 요법 실시. 체중 부하 금지.",
+        "족저근막": "족저근막염 의심. 발바닥 아치 부분을 골프공이나 캔으로 문질러 마사지하세요.",
+        "종아리": "쥐(근육 경련) 또는 비복근 파열 의심. 발끝을 몸 쪽으로 당기는 스트레칭을 부드럽게 시행.",
+        "허벅지/고관절": "햄스트링 부상 주의. 억지로 늘리지 말고 얼음찜질 후 압박 붕대 사용 권장.",
+        "기타": "통증이 지속되면 즉시 러닝을 멈추고 전문가와 상담하세요."
+    },
+    "English": {
+        "Knee": "Runner's Knee suspected. IT band stretching is essential. Avoid downhill running.",
+        "Ankle": "Sprain suspected. Perform R.I.C.E (Rest, Ice, Compression, Elevation) immediately.",
+        "Plantar Fascia": "Plantar fasciitis suspected. Massage the arch of your foot with a golf ball or can.",
+        "Calf": "Cramp or muscle tear suspected. Gently stretch by pulling your toes toward your body.",
+        "Thigh/Hip": "Hamstring injury warning. Do not stretch forcibly; use ice packs and compression bandages.",
+        "Other": "If pain persists, stop running immediately and consult a specialist."
+    },
+    "中文": {
+        "膝盖": "怀疑跑步膝。膝盖外侧疼痛时必须进行IT带拉伸。禁止下坡跑。",
+        "脚踝": "怀疑脚踝扭伤。立即实施R.I.C.E（休息、冷敷、压迫、抬高）疗法。",
+        "足底筋膜": "怀疑足底筋膜炎。用高尔夫球或罐子摩擦脚底足弓部位进行按摩。",
+        "小腿": "怀疑抽筋或肌肉撕裂。轻轻将脚趾向身体方向拉伸。",
+        "大腿/髋关节": "注意腘绳肌受伤。不要强行拉伸，建议冷敷后使用弹力绷带。",
+        "其他": "如果疼痛持续，请立即停止跑步并咨询专家。"
+    },
+    "日本語": {
+        "膝": "ランナー膝の疑い。膝の外側の痛みにはITバンドのストレッチが必須。下り坂の走行禁止。",
+        "足首": "足首の捻挫の疑い。直ちにR.I.C.E（安静、冷却、圧迫、挙上）療法を実施。",
+        "足底筋膜": "足底筋膜炎の疑い。足の裏のアーチ部分をゴルフボールや缶でこすってマッサージしてください。",
+        "ふくらはぎ": "こむら返りまたは筋肉断裂の疑い。つま先を体の方に引くストレッチを優しく実施。",
+        "太もも/股関節": "ハムストリングの怪我に注意。無理に伸ばさず、アイシング後に圧迫包帯の使用を推奨。",
+        "その他": "痛みが続く場合は直ちにランニングを中止し、専門家に相談してください。"
+    }
+}
+
+# ==========================================
+# 3. 함수 정의
+# ==========================================
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     dlat = radians(lat2 - lat1)
@@ -34,7 +182,6 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * asin(min(1, sqrt(a)))
     return R * c
 
-# 데이터 불러오기
 @st.cache_data
 def load_data():
     try:
@@ -46,31 +193,33 @@ def load_data():
 
 df = load_data()
 
-# 응급처치 가이드 데이터
-INJURY_GUIDES = {
-    "무릎(Knee)": "러너스 니 의심. 무릎 바깥쪽 통증 시 IT밴드 스트레칭 필수. 내리막길 주행 금지.",
-    "발목(Ankle)": "발목 염좌 의심. 즉시 R.I.C.E(휴식, 냉찜질, 압박, 거상) 요법 실시. 체중 부하 금지.",
-    "족저근막(Foot)": "족저근막염 의심. 발바닥 아치 부분을 골프공이나 캔으로 문질러 마사지하세요.",
-    "종아리(Calf)": "쥐(근육 경련) 또는 비복근 파열 의심. 발끝을 몸 쪽으로 당기는 스트레칭을 부드럽게 시행.",
-    "허벅지/고관절": "햄스트링 부상 주의. 억지로 늘리지 말고 얼음찜질 후 압박 붕대 사용 권장.",
-    "기타": "통증이 지속되면 즉시 러닝을 멈추고 전문가와 상담하세요."
-}
+# ==========================================
+# 4. 웹 화면 구성 (UI)
+# ==========================================
 
-# ==========================================
-# 3. 웹 화면 구성 (UI)
-# ==========================================
-st.title("RunAid")
+# 언어 선택 (사이드바 또는 메인 상단)
+lang_code = st.radio(
+    "Language / 言語 / 语言",
+    ["한국어", "English", "中文", "日本語"],
+    horizontal=True
+)
+
+# 선택된 언어의 텍스트 로드
+txt = LANG_TEXT[lang_code]
+guide_data = INJURY_DATA[lang_code]
+
+st.title(txt["title"])
 st.markdown("---")
 
 if df is None:
-    st.error("❌ 데이터 파일(jongno_run_hospitals.csv)이 없습니다.")
+    st.error("❌ Data file not found (jongno_run_hospitals.csv)")
     st.stop()
 
 # (1) 위치 정보 받기
-st.subheader("1️⃣ 현재 위치 확인")
-st.info("아래 버튼을 누르면 GPS 정보를 가져옵니다 (브라우저 권한 허용 필요).")
+st.subheader(txt["loc_header"])
+st.info(txt["loc_info"])
 
-loc = get_geolocation() # GPS 버튼
+loc = get_geolocation()
 
 user_lat = None
 user_lon = None
@@ -78,48 +227,48 @@ user_lon = None
 if loc:
     user_lat = loc['coords']['latitude']
     user_lon = loc['coords']['longitude']
-    st.success(f"📍 위치 확인 완료! (위도: {user_lat:.4f}, 경도: {user_lon:.4f})")
+    st.success(f"{txt['loc_success']} (Lat: {user_lat:.4f}, Lon: {user_lon:.4f})")
 else:
-    st.warning("위치 정보를 가져와야 병원을 추천할 수 있습니다.")
+    st.warning(txt["loc_warn"])
 
 # (2) 부상 부위 선택
-st.subheader("2️⃣ 부상 정보 입력")
-body_part = st.selectbox("아픈 부위를 선택하세요", list(INJURY_GUIDES.keys()))
+st.subheader(txt["body_header"])
+body_part = st.selectbox(txt["body_label"], list(guide_data.keys()))
 
 # (3) 통증 점수 선택
-nrs_score = st.slider("통증 정도 (0: 안 아픔 ~ 10: 극심함)", 0, 10, 0)
+nrs_score = st.slider(txt["nrs_label"], 0, 10, 0)
 
 # ==========================================
-# 4. 결과 분석 및 출력
+# 5. 결과 분석 및 출력
 # ==========================================
-if st.button("병원 찾기 & 진단 시작", type="primary"):
+if st.button(txt["btn_search"], type="primary"):
     if user_lat is None or user_lon is None:
-        st.error("먼저 상단의 버튼을 눌러 위치 정보를 가져와주세요!")
+        st.error(txt["err_loc"])
     else:
         st.markdown("---")
-        st.header("🔄 분석 결과")
+        st.header(txt["res_header"])
         
-        guide_text = INJURY_GUIDES[body_part]
+        guide_text = guide_data[body_part]
         
         # [Case A] 경미함
         if nrs_score < 4:
-            st.success(f"✅ NRS {nrs_score}: 경미한 통증입니다.")
-            st.info(f"💡 **[{body_part} 관리 팁]**\n\n{guide_text}")
-            st.caption("혹시 모를 상황을 위해 근처 병원을 안내합니다.")
+            st.success(f"✅ NRS {nrs_score}: {txt['msg_mild']}")
+            st.info(f"💡 **[{body_part} {txt['msg_mild_tip']}]**\n\n{guide_text}")
+            st.caption(txt['msg_mild_sub'])
             
         # [Case B] 병원 방문 권장
         elif 4 <= nrs_score <= 7:
-            st.warning(f"🚨 NRS {nrs_score}: 전문의 진료가 필요합니다.")
-            st.write("자가 처치보다는 병원 방문을 권장합니다.")
+            st.warning(f"🚨 NRS {nrs_score}: {txt['msg_warning']}")
+            st.write(txt['msg_warning_sub'])
             
         # [Case C] 응급
         else:
-            st.error(f"🚑 NRS {nrs_score}: 즉각적인 조치가 필요한 응급 상황입니다!")
-            st.write("🚫 **즉시 119를 부르거나 응급실로 이동하세요.**")
+            st.error(f"🚑 NRS {nrs_score}: {txt['msg_emerg']}")
+            st.write(txt['msg_emerg_sub'])
 
         # 병원 추천 로직
         if nrs_score <= 10:
-            st.markdown("### 🏥 가장 가까운 병원 / 한의원")
+            st.markdown(f"### {txt['hosp_header']}")
             
             # 거리 계산
             df['거리(km)'] = df.apply(
@@ -132,26 +281,26 @@ if st.button("병원 찾기 & 진단 시작", type="primary"):
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("#### 🦴 [병원]")
+                st.markdown(f"#### {txt['cat_ortho']}")
                 if orthopedics.empty:
-                    st.write("근처 정보 없음")
+                    st.write(txt['no_data'])
                 else:
                     for _, row in orthopedics.iterrows():
                         dist = int(row['거리(km)'] * 1000)
+                        # 병원 이름/주소는 DB에 있는 원본(한국어) 사용
                         st.markdown(f"**{row['병원명']}** ({dist}m)")
                         st.text(f"📞 {row['전화번호']}")
-                        st.markdown(f"[지도 보기]({row['지도URL']})")
+                        st.markdown(f"[{txt['info_map']}]({row['지도URL']})")
                         st.divider()
 
             with col2:
-                st.markdown("#### 🌿 [한의원]")
+                st.markdown(f"#### {txt['cat_orient']}")
                 if oriental.empty:
-                    st.write("근처 정보 없음")
+                    st.write(txt['no_data'])
                 else:
                     for _, row in oriental.iterrows():
                         dist = int(row['거리(km)'] * 1000)
                         st.markdown(f"**{row['병원명']}** ({dist}m)")
                         st.text(f"📞 {row['전화번호']}")
-                        st.markdown(f"[지도 보기]({row['지도URL']})")
-
+                        st.markdown(f"[{txt['info_map']}]({row['지도URL']})")
                         st.divider()
