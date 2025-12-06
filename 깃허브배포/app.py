@@ -194,7 +194,8 @@ INJURY_DATA = {
 # ==========================================
 # 3. 함수 정의
 # ==========================================
-def haversine(lat1, lon1, lat2, lon2):
+# [수정됨] haversine -> DisCal
+def DisCal(lat1, lon1, lat2, lon2):
     R = 6371
     dlat = radians(lat2 - lat1)
     dlon = radians(lon2 - lon1)
@@ -341,8 +342,9 @@ if st.button(txt["btn_search"], type="primary"):
         if nrs_score < 8:
             st.markdown(f"### {txt['hosp_header']}")
             
+            # [수정됨] 호출부: haversine -> DisCal
             df['거리(km)'] = df.apply(
-                lambda row: haversine(user_lat, user_lon, float(row['위도']), float(row['경도'])), axis=1
+                lambda row: DisCal(user_lat, user_lon, float(row['위도']), float(row['경도'])), axis=1
             )
             
             orthopedics = df[df['분류'] == '정형외과'].sort_values(by='거리(km)').head(2)
