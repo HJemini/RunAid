@@ -14,16 +14,6 @@ st.set_page_config(page_title="RunAid", page_icon="🏃")
 st.markdown(
     """
     <style>
-    /* [전역 폰트 및 렌더링 설정 개선] */
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-        text-rendering: optimizeLegibility; /* 텍스트 렌더링 최적화 */
-        -webkit-font-smoothing: antialiased; /* 맥/iOS에서 폰트 부드럽게 */
-        -moz-osx-font-smoothing: grayscale;
-    }
-
     .stApp {
         background-color: #F0F8FF;
     }
@@ -31,7 +21,7 @@ st.markdown(
     /* [의료 정보 카드 스타일] */
     .med-card {
         background-color: #ffffff;
-        border-left: 5px solid #0078FF;
+        border-left: 5px solid #0078FF; /* 기본 파란색 (동적으로 변경됨) */
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
@@ -39,21 +29,20 @@ st.markdown(
     }
     .med-title {
         font-size: 20px;
-        font-weight: 700; /* bold 대신 숫자로 지정하여 선명도 확보 */
-        color: #111111; /* #333 -> #111 (더 진하게) */
+        font-weight: bold;
+        color: #333;
         margin-bottom: 10px;
         display: flex;
         align-items: center;
-        letter-spacing: -0.5px; /* 자간을 살짝 좁혀 가독성 향상 */
     }
     .med-content {
         font-size: 16px;
         line-height: 1.6;
-        color: #222222; /* #444 -> #222 (더 진하게) */
+        color: #444;
         margin-bottom: 10px;
     }
     
-    /* 응급 박스 스타일 */
+    /* 응급 박스 스타일 (NRS 8점 이상일 때 표시) */
     .emergency-box {
         background-color: #FF4B4B;
         padding: 30px;
@@ -62,17 +51,15 @@ st.markdown(
         color: white;
         margin-bottom: 20px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        text-shadow: 0 1px 2px rgba(0,0,0,0.1); /* 흰 글씨에 그림자 추가로 선명도 향상 */
     }
     .emergency-title {
         font-size: 28px;
-        font-weight: 700;
+        font-weight: bold;
         margin-bottom: 10px;
     }
     .emergency-desc {
         font-size: 18px;
         margin-bottom: 20px;
-        font-weight: 500;
     }
     .call-btn {
         background-color: white;
@@ -80,10 +67,9 @@ st.markdown(
         padding: 15px 30px;
         text-decoration: none;
         font-size: 24px;
-        font-weight: 700;
+        font-weight: bold;
         border-radius: 50px;
         display: inline-block;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     
     /* 네이버 지도 버튼 */
@@ -93,13 +79,12 @@ st.markdown(
         border-radius: 8px;
         text-decoration: none;
         font-size: 14px;
-        font-weight: 700;
+        font-weight: bold;
         color: white !important;
         background-color: #03C75A;
         border: none;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         transition: 0.3s;
-        -webkit-font-smoothing: antialiased;
     }
     .map-btn:hover {
         background-color: #029f48;
@@ -214,15 +199,23 @@ INJURY_DATA = {
 #3-1 DisCal 함수(사용자와 병원 한의원간 거리계산)
 
 def DisCal(lat1, lon1, lat2, lon2):
-    R = 6371                                                                                       #지구를 반지름 6371의 구체로 가정
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)               
-    #위도 경도값은 60분법이지만 파이썬의 삼각합수는 호도법, 따라서 단위변환 필요 사용자와 의료시설간 위도차이(dlat)와 경도차이(dlon)를 구한뒤 radians함수 활용하여 라디안으로 단위변환
-    a = sin(dlat / 2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2)**2
-    c = 2 * asin(min(1, sqrt(a)))
+    R = 6371  # 지구 반지름 (km)
     
+    # 입력받은 모든 좌표를 미리 라디안으로 변환 (가독성/효율성 UP)
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    #위도 경도값은 60분법이지만 파이썬의 삼각합수는 호도법, 따라서 단위변환 필요 사용자와 의료시설간 위도차이(dlat)와 경도차이(dlon)를 구한뒤 radians함수 활용하여 라디안으로 단위변환    
+    # 위도, 경도 차이 계산
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    
+    # 하버사인 공식 a 계산
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    
+    safe_a = min(1, sqrt(a))
+    # "min(1, ...)":부동소수점 오차로 1을 넘는 경우 방지
+    c = 2 * asin(safe_a)
     return R * c
-    #구해진 각도를 실제거리로 바꿈. 호의 길이=반지름 X 중심각 이용
+
 
 @st.cache_data
 def load_data():
@@ -237,6 +230,7 @@ df = load_data()
 
 # ==========================================
 # 4. 웹 화면 구성 (UI)
+# 웹 화면 구성에 있어 지식이 전무하므로 생성형 ai의 도움을 받음. 웹 실행 -> 코드 수정 요구 -> 웹 실행 -> 코드 수정 요구 ... 과정을 반복하며 깔끔한 UI를 구축하고자 함.
 # ==========================================
 
 lang_code = st.radio(
@@ -309,6 +303,7 @@ if st.button(txt["btn_search"], type="primary"):
         # ------------------------------------------------
         if nrs_score >= 8:
             # 1. 응급 (NRS 8~10) -> 붉은 박스 표시 & 응급처치 텍스트
+            #NRS 8이상은 119 연결이 가장 급선무라 판단하여, 아래에 있는 가장 가까운 병원 한의원 찾기 과정을 실행하지 않고 119 전화 연결 및 응급 처치 방법이 안내되도록함.
             st.markdown(f"""
                 <div class="emergency-box">
                     <div class="emergency-title">🆘 {txt['msg_emerg']}</div>
@@ -363,7 +358,7 @@ if st.button(txt["btn_search"], type="primary"):
         if nrs_score < 8:
             st.markdown(f"### {txt['hosp_header']}")
             
-            # [수정됨] 호출부: haversine -> DisCal
+           
             df['거리(km)'] = df.apply(
                 lambda row: DisCal(user_lat, user_lon, float(row['위도']), float(row['경도'])), axis=1
             )
@@ -373,6 +368,14 @@ if st.button(txt["btn_search"], type="primary"):
 
             col1, col2 = st.columns(2)
             
+            #가장 가까운 병원과 한의원을 계산하는 구체적인 부분. NRS 수치가 8보다 작을 때만 이 작업이 수행되도록함.
+            # (df.apply): DisCal 함수를 이용해 현재 사용자의 위치(user_lat, user_lon)와 엑셀 파일에 있는 모든 병원의 위도/경도 사이의 거리를 계산합니다.
+            #이 결과값을 거리(km)라는 새로운 컬럼(열)으로 만듭니다.
+            #정렬 및 추출 (sort_values & head):
+            #df['분류'] == '정형외과': 병원 종류가 '정형외과'인 것만 골라냅니다. (병원 종류 정보는 jongno_run_hospitals에 저장되어있음)
+            #.sort_values(by='거리(km)'): 계산해둔 거리를 기준으로 오름차순(가까운 순) 정렬.
+            #.head(2): 정렬된 목록의 맨 위에서 2개만 잘라내어 곧 이것이 가장 가까운 병원 2곳이 되도록 함.
+
             def show_hospitals(container, data, category_name):
                 with container:
                     st.markdown(f"#### {category_name}")
@@ -396,4 +399,3 @@ if st.button(txt["btn_search"], type="primary"):
 
             show_hospitals(col1, orthopedics, txt['cat_ortho'])
             show_hospitals(col2, oriental, txt['cat_orient'])
-
