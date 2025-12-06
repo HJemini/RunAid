@@ -210,10 +210,7 @@ def DisCal(lat1, lon1, lat2, lon2):
     
     # 하버사인 공식 a 계산
     a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
-    
-    safe_a = min(1, sqrt(a))
-    # "min(1, ...)":부동소수점 오차로 1을 넘는 경우 방지
-    c = 2 * asin(safe_a)
+    c = 2 * asin(min(1, sqrt(a)))
     return R * c
 
 
@@ -399,3 +396,4 @@ if st.button(txt["btn_search"], type="primary"):
 
             show_hospitals(col1, orthopedics, txt['cat_ortho'])
             show_hospitals(col2, oriental, txt['cat_orient'])
+
